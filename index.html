@@ -3,49 +3,171 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stone Game</title>
+<title>Stone Survival</title>
+<style>
+body {
+  margin:0;
+  overflow:hidden;
+  font-family:Arial;
+  background:#0e1f1a;
+  color:white;
+}
+#game {
+  width:100vw;
+  height:80vh;
+  position:relative;
+  background:#1a3a2e;
+  overflow:hidden;
+}
+.player {
+  width:50px;
+  height:50px;
+  background:#4cff4c;
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, -50%);
+  border-radius:10px;
+}
+.resource {
+  width:30px;
+  height:30px;
+  position:absolute;
+  border-radius:50%;
+}
+.resource.wood { background:#b5651d; } /* bois */
+.resource.stone { background:#888888; } /* pierre */
+#joystick {
+  position:fixed;
+  bottom:20px;
+  left:20px;
+  width:120px;
+  height:120px;
+  background:rgba(255,255,255,0.2);
+  border-radius:50%;
+  touch-action:none;
+}
+#stick {
+  width:60px;
+  height:60px;
+  background:rgba(255,255,255,0.5);
+  border-radius:50%;
+  position:absolute;
+  top:30px;
+  left:30px;
+  touch-action:none;
+}
+button { font-size:18px; margin:5px; padding:8px 12px; }
+</style>
 </head>
-<body style="background:#0e1f1a;color:white;text-align:center;font-family:Arial;">
+<body>
 
-<h2>🧪 Stone Game</h2>
+<h2 style="text-align:center;">🧪 Stone Survival</h2>
+<p style="text-align:center;">Bois : <span id="wood">0</span> | Pierre : <span id="stone">0</span></p>
 
-<p>Bois : <span id="wood">0</span> | Pierre : <span id="stone">0</span></p>
+<div id="game">
+  <div class="player" id="player"></div>
+</div>
 
-<button onclick="addWood()" style="font-size:20px;">🌲 Bois</button>
-<button onclick="addStone()" style="font-size:20px;">🪨 Pierre</button>
-<button onclick="craft()" style="font-size:20px;">🪓 Crafter</button>
+<div id="joystick">
+  <div id="stick"></div>
+</div>
 
-<p id="log"></p>
+<button onclick="craftAxe()">🪓 Crafter Hache</button>
+<p id="log" style="text-align:center;"></p>
 
 <script>
-let wood = 0;
-let stone = 0;
+// ----- Variables -----
+let game = document.getElementById("game");
+let player = document.getElementById("player");
+let wood = 0, stone = 0;
+let speed = 2;
+let playerX = window.innerWidth/2;
+let playerY = window.innerHeight*0.4;
+let resources = [];
 
-function addWood() {
-  wood++;
-  update();
+// ----- Craft -----
+function craftAxe(){
+  if(wood>=2 && stone>=1){
+    wood-=2; stone-=1;
+    log("🪓 Hache craftée !");
+  }else log("❌ Pas assez de ressources");
+  updateUI();
 }
 
-function addStone() {
-  stone++;
-  update();
-}
-
-function craft() {
-  if (wood >= 2 && stone >= 1) {
-    wood -= 2;
-    stone -= 1;
-    document.getElementById("log").innerText = "🪓 Hache créée !";
-  } else {
-    document.getElementById("log").innerText = "❌ Pas assez de ressources";
-  }
-  update();
-}
-
-function update() {
+function updateUI(){
   document.getElementById("wood").innerText = wood;
   document.getElementById("stone").innerText = stone;
 }
+
+function log(msg){
+  document.getElementById("log").innerText = msg;
+}
+
+// ----- Joystick -----
+let stick = document.getElementById("stick");
+let joystick = document.getElementById("joystick");
+let active=false, joyX=0, joyY=0;
+
+stick.addEventListener('touchstart', ()=>{active=true;});
+stick.addEventListener('touchend', ()=>{
+  active=false; stick.style.transform="translate(0px,0px)"; joyX=0; joyY=0;
+});
+stick.addEventListener('touchmove', e=>{
+  if(!active) return;
+  let touch=e.touches[0];
+  let rect=joystick.getBoundingClientRect();
+  let x = touch.clientX - rect.left - stick.offsetWidth/2;
+  let y = touch.clientY - rect.top - stick.offsetHeight/2;
+  let dist = Math.min(Math.sqrt(x*x+y*y),50);
+  let angle = Math.atan2(y,x);
+  joyX = Math.cos(angle)*dist/50;
+  joyY = Math.sin(angle)*dist/50;
+  stick.style.transform=`translate(${joyX*50}px,${joyY*50}px)`;
+  e.preventDefault();
+});
+
+// ----- Game Loop -----
+function gameLoop(){
+  // déplacement joueur
+  playerX += joyX*speed;
+  playerY += joyY*speed;
+  playerX = Math.max(0, Math.min(window.innerWidth-50, playerX));
+  playerY = Math.max(0, Math.min(window.innerHeight*0.8-50, playerY));
+  player.style.left = playerX+'px';
+  player.style.top = playerY+'px';
+
+  // collecte automatique
+  resources.forEach((res,index)=>{
+    let rx = parseFloat(res.style.left);
+    let ry = parseFloat(res.style.top);
+    if(Math.abs(rx-playerX)<40 && Math.abs(ry-playerY)<40){
+      if(res.classList.contains("wood")){ wood++; }
+      if(res.classList.contains("stone")){ stone++; }
+      game.removeChild(res);
+      resources.splice(index,1);
+      updateUI();
+    }
+  });
+
+  requestAnimationFrame(gameLoop);
+}
+gameLoop();
+
+// ----- Spawn ressources aléatoires -----
+function spawnResource(type){
+  let res = document.createElement("div");
+  res.classList.add("resource",type);
+  res.style.left = Math.random()*(window.innerWidth-30)+'px';
+  res.style.top = Math.random()*(window.innerHeight*0.8-30)+'px';
+  game.appendChild(res);
+  resources.push(res);
+}
+
+// spawn automatique toutes les 2 secondes
+setInterval(()=>{
+  spawnResource(Math.random()<0.5 ? "wood" : "stone");
+},2000);
 </script>
 
 </body>
