@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stone Game</title>
+</head>
+<body style="background:#0e1f1a;color:white;text-align:center;font-family:Arial;">
+
+<h2>🧪 Stone Game</h2>
+
+<p>Bois : <span id="wood">0</span> | Pierre : <span id="stone">0</span></p>
+
+<button onclick="addWood()" style="font-size:20px;">🌲 Bois</button>
+<button onclick="addStone()" style="font-size:20px;">🪨 Pierre</button>
+<button onclick="craft()" style="font-size:20px;">🪓 Crafter</button>
+
+<p id="log"></p>
+
+<script>
+let wood = 0;
+let stone = 0;
+
+function addWood() {
+  wood++;
+  update();
+}
+
+function addStone() {
+  stone++;
+  update();
+}
+
+function craft() {
+  if (wood >= 2 && stone >= 1) {
+    wood -= 2;
+    stone -= 1;
+    document.getElementById("log").innerText = "🪓 Hache créée !";
+  } else {
+    document.getElementById("log").innerText = "❌ Pas assez de ressources";
+  }
+  update();
+}
+
+function update() {
+  document.getElementById("wood").innerText = wood;
+  document.getElementById("stone").innerText = stone;
+}
+</script>
+
+</body>
+</html>
